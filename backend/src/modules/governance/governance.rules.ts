@@ -155,6 +155,53 @@ export const CLASSIFICATION_RULES: Record<string, ClassificationRule> = {
       "Check for embedded personal or confidential information",
     ],
   },
+
+  CHILDREN_DATA: {
+    classification: "RESTRICTED",
+    reason:
+      "Personal data belonging to an individual under 18 years of age. Section 9 mandates Verifiable Parental Consent, prohibits tracking/profiling, and bans harmful processing.",
+    legalReferences: [
+      "DPDP Act, 2023, Section 9(1) - Verifiable Parental Consent requirement",
+      "DPDP Act, 2023, Section 9(2) - Prohibition on processing detrimental to well-being",
+      "DPDP Act, 2023, Section 9(3) - Absolute ban on behavioral tracking and targeted advertising",
+      "DPDP Act, 2023, Section 33 Schedule - Fine up to ₹200 Crore for breach of Section 9",
+    ],
+    controls: [
+      "Mandatory Verifiable Parental Consent (VPC) before collection",
+      "Strict prohibition on behavioral tracking, monitoring, or profiling",
+      "Strict prohibition on targeted advertising directed at children",
+      "Age-assurance checks prior to processing",
+      "Prompt erasure upon request by parent or legal guardian",
+    ],
+  },
+
+  PARENT_GUARDIAN_CONTACT: {
+    classification: "CONFIDENTIAL",
+    reason:
+      "Contact and identity information of parent or legal guardian executing Section 9 consent.",
+    legalReferences: ["DPDP Act, 2023, Section 9(1)"],
+    controls: [
+      "Link with minor child profile only for verifiable consent verification",
+      "Restrict access to authorized compliance personnel",
+      "Support parental revocation of consent",
+    ],
+  },
+
+  CHILD_HEALTH_DATA: {
+    classification: "RESTRICTED",
+    reason:
+      "Pediatric and health records of a minor child requiring heightened security and guardian consent.",
+    legalReferences: [
+      "DPDP Act, 2023, Section 9",
+      "DPDP Act, 2023, Section 8(5)",
+      "Digital Personal Data Protection Act, 2023, Section 33 Schedule",
+    ],
+    controls: [
+      "Parental verification for all clinical access",
+      "Restricted end-to-end encryption",
+      "Prohibition on commercial profiling or research without verified statutory consent",
+    ],
+  },
 };
 
 
@@ -578,6 +625,14 @@ export function resolveClassification(piiCategory: string): ClassificationRule {
   }
 
   // Fallback checks
+  if (/child|minor|student|pediatric|pupil|infant/i.test(normalized)) {
+    return /health|clinical|diagnostic|pediatric/i.test(normalized)
+      ? CLASSIFICATION_RULES.CHILD_HEALTH_DATA
+      : CLASSIFICATION_RULES.CHILDREN_DATA;
+  }
+  if (/guardian|parent/i.test(normalized)) {
+    return CLASSIFICATION_RULES.PARENT_GUARDIAN_CONTACT;
+  }
   if (/aadhaar|uidai|biometric/i.test(normalized)) {
     return CLASSIFICATION_RULES.AADHAAR;
   }

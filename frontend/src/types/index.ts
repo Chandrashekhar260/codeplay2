@@ -13,7 +13,10 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  tenantId: string;
+  tenantId?: string;
+  role?: string;
+  userType?: 'MSME' | 'CITIZEN';
+  phone?: string;
 }
 
 export interface AuthResponse {

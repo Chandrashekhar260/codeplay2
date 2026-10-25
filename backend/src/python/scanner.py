@@ -63,6 +63,11 @@ HEALTH_KEYWORDS = {
     'biopsy', 'test report', 'medication', 'dosage', 'symptoms', 'treatment'
 }
 
+CHILD_KEYWORDS = {
+    'child', 'minor', 'student', 'pediatric', 'pediatry', 'kindergarten', 'infant',
+    'pupil', 'dob_minor', 'age_minor', 'guardian', 'parent_consent', 'parental_consent'
+}
+
 HEADER_HINTS = {
     'phone': ('PHONE_NUMBER', 'HIGH'),
     'mobile': ('PHONE_NUMBER', 'HIGH'),
@@ -80,6 +85,14 @@ HEADER_HINTS = {
     'city': ('LOCATION', 'LOW'),
     'pincode': ('POSTAL_CODE', 'LOW'),
     'pin': ('POSTAL_CODE', 'LOW'),
+    # Section 9 Children's Data Protection Hints
+    'child': ('CHILDREN_DATA', 'CRITICAL'),
+    'minor': ('CHILDREN_DATA', 'CRITICAL'),
+    'student': ('CHILDREN_DATA', 'CRITICAL'),
+    'pediatric': ('CHILD_HEALTH_DATA', 'CRITICAL'),
+    'guardian': ('PARENT_GUARDIAN_CONTACT', 'HIGH'),
+    'parent': ('PARENT_GUARDIAN_CONTACT', 'HIGH'),
+    'parental': ('PARENT_GUARDIAN_CONTACT', 'HIGH'),
 }
 
 def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
@@ -90,6 +103,15 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
     for hint, (category, sensitivity) in HEADER_HINTS.items():
         if hint in header_lower:
             return {'piiCategories': category, 'sensitivityLevel': sensitivity}
+
+    # Check child / minor keywords in header
+    for kw in CHILD_KEYWORDS:
+        if kw in header_lower:
+            if 'pediatric' in header_lower or 'health' in header_lower:
+                return {'piiCategories': 'CHILD_HEALTH_DATA', 'sensitivityLevel': 'CRITICAL'}
+            if 'guardian' in header_lower or 'parent' in header_lower:
+                return {'piiCategories': 'PARENT_GUARDIAN_CONTACT', 'sensitivityLevel': 'HIGH'}
+            return {'piiCategories': 'CHILDREN_DATA', 'sensitivityLevel': 'CRITICAL'}
 
     # Check health keywords in header
     for kw in HEALTH_KEYWORDS:
@@ -198,9 +220,16 @@ def scan_file(file_path: str) -> Dict[str, Any]:
 
         # Generate Remediation Flags matching Photo 2 schema:
         # remediation_flags (flag_id, source_id, flag_type, severity, status)
+        has_child_data = any(f.get('piiCategories') in ('CHILDREN_DATA', 'CHILD_HEALTH_DATA') for f in findings)
         has_critical = any(f['sensitivityLevel'] == 'CRITICAL' for f in findings)
         has_high = any(f['sensitivityLevel'] == 'HIGH' for f in findings)
 
+        if has_child_data:
+            flags.append({
+                'flagType': 'SECTION_9_CHILD_DATA_SAFEGUARD',
+                'severity': 'CRITICAL',
+                'status': 'OPEN'
+            })
         if has_critical:
             flags.append({
                 'flagType': 'UNENCRYPTED_CRITICAL_PII',
@@ -213,7 +242,7 @@ def scan_file(file_path: str) -> Dict[str, Any]:
                 'severity': 'HIGH',
                 'status': 'OPEN'
             })
-        if len(findings) > 0 and not has_critical and not has_high:
+        if len(findings) > 0 and not has_critical and not has_high and not has_child_data:
             flags.append({
                 'flagType': 'GENERAL_PII_PRESENT',
                 'severity': 'MEDIUM',

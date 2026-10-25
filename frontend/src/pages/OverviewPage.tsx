@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ShieldAlert,
-  Files,
-  FileCheck2,
-  Scale,
   ArrowRight,
   ShieldCheck,
+  FileSearch,
+  Network,
+  FileCheck2,
+  Baby,
 } from 'lucide-react';
 import type { NavTab } from '../components/layout/Sidebar';
 import { api } from '../api/client';
@@ -49,112 +49,156 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate, stats })
   }, []);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Statutory Readiness Banner */}
-      <div className="bg-slate-900 text-white rounded-lg p-5 border border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-[11px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded">
-              DPDP ACT, 2023 LIVE ENFORCEMENT
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Title & Primary Action Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+              Compliance Overview
+            </h2>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-royal-700 border border-blue-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-royal-600" />
+              DPDP Act 2023 Live
             </span>
-            <span className="text-xs text-slate-400">Connected to Cloud PostgreSQL Engine</span>
           </div>
-          <h2 className="text-lg font-bold text-white tracking-tight">
-            DataSentinel Compliance Dashboard
-          </h2>
-          <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-            Real-time synchronization with discovery scanner, RoPA processing activities, and affirmative Section 6 consent ledger.
+          <p className="text-xs text-slate-500 mt-1">
+            Digital Personal Data Protection Act, 2023 posture and active statutory register metrics.
           </p>
         </div>
 
         <button
           onClick={() => onNavigate('discovery')}
-          className="shrink-0 flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded shadow transition-colors"
+          className="btn-primary px-4 py-2 text-xs font-semibold rounded-xl shadow-sm hover:shadow flex items-center gap-2 cursor-pointer self-start sm:self-auto group"
         >
-          <span>Scan New Data Source</span>
-          <ArrowRight className="w-4 h-4" />
+          <span>Scan new data source</span>
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-150" />
         </button>
       </div>
 
-      {/* Primary KPI Grid (Direct Live Counts from PostgreSQL) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Discovered Sources */}
-        <div className="bg-white border border-slate-200 rounded p-4">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Discovered Data Sources</span>
-            <Files className="w-4 h-4 text-slate-400" />
+      {/* DPDP Section 9 Children's Personal Data Protection Banner */}
+      <div className="bg-gradient-to-r from-teal-50/90 to-blue-50/70 border border-teal-200/80 rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4 card-interactive shadow-xs">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+            <Baby className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 tabular-nums">{stats.sourcesCount}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Uploaded Excel & CSV sources</p>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-bold text-teal-950 tracking-tight">
+                DPDP Act Section 9 — Children's Personal Data Protection Safeguards
+              </h3>
+              <span className="px-2.5 py-0.5 text-[10px] font-bold bg-white text-teal-800 border border-teal-300 rounded-full shadow-2xs">
+                Statutory Active
+              </span>
+            </div>
+            <p className="text-xs text-teal-900/90 mt-1 max-w-2xl leading-relaxed">
+              Verifiable parental/guardian consent verification active. Behavioral tracking, user profiling, and targeted advertising directed at minor individuals are strictly prohibited with penalties up to ₹200 Crores under Section 33.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigate('dsr')}
+          className="btn-secondary px-3.5 py-2 text-xs font-semibold rounded-xl shrink-0 self-start md:self-center cursor-pointer shadow-2xs"
+        >
+          View Section 9 Minor DSRs
+        </button>
+      </div>
+
+      {/* Primary KPI Container — Interactive Card Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Discovered Sources */}
+        <div
+          onClick={() => onNavigate('discovery')}
+          className="bg-white border border-slate-200/90 hover:border-royal-500 rounded-2xl p-4.5 cursor-pointer card-interactive shadow-xs group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Discovered Sources</span>
+            <FileSearch className="w-4 h-4 text-slate-400 group-hover:text-royal-600 transition-colors" />
+          </div>
+          <div className="text-3xl font-extrabold text-slate-900 tabular-nums mt-2">{stats.sourcesCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1">Spreadsheets & databases indexed</p>
         </div>
 
         {/* Extracted PII Fields */}
-        <div className="bg-white border border-slate-200 rounded p-4">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Extracted PII Identifiers</span>
-            <ShieldAlert className="w-4 h-4 text-rose-500" />
+        <div
+          onClick={() => onNavigate('discovery')}
+          className="bg-white border border-slate-200/90 hover:border-rose-500 rounded-2xl p-4.5 cursor-pointer card-interactive shadow-xs group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Identified PII Fields</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 tabular-nums">{stats.findingsCount}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Discovered via Python Verhoeff scanner</p>
+          <div className="text-3xl font-extrabold text-rose-600 tabular-nums mt-2">{stats.findingsCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1">Verified via Verhoeff checksum</p>
         </div>
 
         {/* Governed Assets */}
-        <div className="bg-white border border-slate-200 rounded p-4">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Governed Data Assets</span>
-            <Scale className="w-4 h-4 text-blue-500" />
+        <div
+          onClick={() => onNavigate('governance')}
+          className="bg-white border border-slate-200/90 hover:border-teal-500 rounded-2xl p-4.5 cursor-pointer card-interactive shadow-xs group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Governed Data Assets</span>
+            <Network className="w-4 h-4 text-slate-400 group-hover:text-teal-600 transition-colors" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 tabular-nums">{stats.assetsCount}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Classified with statutory retention</p>
+          <div className="text-3xl font-extrabold text-slate-900 tabular-nums mt-2">{stats.assetsCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1">Scheduled statutory retention</p>
         </div>
 
         {/* Active Consents */}
-        <div className="bg-white border border-slate-200 rounded p-4">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Active Consent Records</span>
-            <FileCheck2 className="w-4 h-4 text-emerald-600" />
+        <div
+          onClick={() => onNavigate('consent')}
+          className="bg-white border border-slate-200/90 hover:border-emerald-500 rounded-2xl p-4.5 cursor-pointer card-interactive shadow-xs group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">Active Consents</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 tabular-nums">{stats.consentsCount}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Recorded affirmative consents</p>
+          <div className="text-3xl font-extrabold text-emerald-600 tabular-nums mt-2">{stats.consentsCount}</div>
+          <p className="text-[11px] text-slate-500 mt-1">Section 6 affirmative consents</p>
         </div>
       </div>
 
-      {/* Statutory Maximum Penalty Reference Matrix (Direct from /api/v1/governance/rules) */}
-      <div className="bg-white border border-slate-200 rounded">
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+      {/* Statutory Maximum Penalty Reference Matrix */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
           <div>
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Statutory Penalty Liability Matrix (DPDP Act, 2023)
+            <h3 className="text-xs font-bold text-slate-900">
+              Statutory Penalty Liability Matrix (DPDP Act, 2023 Section 33)
             </h3>
-            <p className="text-xs text-slate-500">
-              Direct statutory entries from <span className="font-mono">/api/v1/governance/rules</span>.
+            <p className="text-xs text-slate-500 mt-0.5">
+              Statutory maximum liability caps determined by the Data Protection Board of India.
             </p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded">
-            Legal Constants
+          <span className="text-[11px] font-bold px-3 py-1 bg-white text-slate-700 rounded-lg border border-slate-200 shadow-2xs">
+            Schedule Reference
           </span>
         </div>
 
         <div className="overflow-x-auto">
           {loadingRules ? (
-            <div className="p-8 text-center text-xs text-slate-500">Loading statutory penalty matrix from API...</div>
+            <div className="p-8 text-center text-xs text-slate-500 font-medium">Loading statutory rules...</div>
           ) : (
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold text-[11px]">
+              <thead className="bg-slate-50/90 border-b border-slate-200 text-slate-600 font-semibold text-[11px]">
                 <tr>
-                  <th className="py-2.5 px-4">Statutory Contravention Area</th>
-                  <th className="py-2.5 px-4">DPDP Section</th>
-                  <th className="py-2.5 px-4">Maximum Statutory Liability</th>
-                  <th className="py-2.5 px-4">Statutory Basis</th>
+                  <th className="py-3 px-5">Contravention Area</th>
+                  <th className="py-3 px-5">Statutory Section</th>
+                  <th className="py-3 px-5 text-right">Maximum Liability</th>
+                  <th className="py-3 px-5">Legal Basis</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-normal">
+              <tbody className="divide-y divide-slate-100">
                 {penalties.map((item) => (
-                  <tr key={item.key} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-medium text-slate-900">{item.key.replace(/_/g, ' ')}</td>
-                    <td className="py-3 px-4 font-mono text-slate-700">{item.section}</td>
-                    <td className="py-3 px-4 font-bold text-rose-700 tabular-nums">{item.maximum}</td>
-                    <td className="py-3 px-4 text-slate-600 text-[11px]">{item.basis}</td>
+                  <tr key={item.key} className="hover:bg-blue-50/40 transition-colors">
+                    <td className="py-3 px-5 font-semibold text-slate-900">
+                      {item.key.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </td>
+                    <td className="py-3 px-5 text-slate-600 font-medium">{item.section}</td>
+                    <td className="py-3 px-5 font-bold text-rose-600 tabular-nums text-right">
+                      {item.maximum}
+                    </td>
+                    <td className="py-3 px-5 text-slate-600">{item.basis}</td>
                   </tr>
                 ))}
               </tbody>
@@ -163,47 +207,63 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ onNavigate, stats })
         </div>
       </div>
 
-      {/* Quick Navigation Cards */}
+      {/* Workflow Navigation Panels */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           onClick={() => onNavigate('discovery')}
-          className="bg-white border border-slate-200 rounded p-4 hover:border-blue-400 hover:shadow-sm cursor-pointer transition-all"
+          className="bg-white border border-slate-200 hover:border-royal-500 rounded-2xl p-5 card-interactive shadow-xs cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-slate-900 uppercase">1. PII Scanner</h4>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-royal-600 flex items-center justify-center font-bold">
+                <FileSearch className="w-4 h-4" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900">1. Data Discovery & Scanner</h4>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-royal-600 transition-all" />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Detect 12-digit Indian Aadhaar via Verhoeff algorithm and PAN numbers.
+          <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
+            Upload MSME files to detect Indian Aadhaar via Verhoeff checksum, PAN numbers, and Section 9 pediatric minor data.
           </p>
         </div>
 
         <div
           onClick={() => onNavigate('ropa')}
-          className="bg-white border border-slate-200 rounded p-4 hover:border-blue-400 hover:shadow-sm cursor-pointer transition-all"
+          className="bg-white border border-slate-200 hover:border-royal-500 rounded-2xl p-5 card-interactive shadow-xs cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-slate-900 uppercase">2. RoPA Data Graph</h4>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-royal-600 flex items-center justify-center font-bold">
+                <Network className="w-4 h-4" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900">2. RoPA & Data Flow Graph</h4>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-royal-600 transition-all" />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Interactive React Flow pipeline mapping data from collection to WhatsApp.
+          <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
+            Interactive node-edge graph mapping processing pipelines from collection to third-party recipients.
           </p>
         </div>
 
         <div
           onClick={() => onNavigate('consent')}
-          className="bg-white border border-slate-200 rounded p-4 hover:border-blue-400 hover:shadow-sm cursor-pointer transition-all"
+          className="bg-white border border-slate-200 hover:border-royal-500 rounded-2xl p-5 card-interactive shadow-xs cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-slate-900 uppercase">3. Multilingual Consent</h4>
-            <ArrowRight className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-royal-600 flex items-center justify-center font-bold">
+                <FileCheck2 className="w-4 h-4" />
+              </div>
+              <h4 className="text-xs font-bold text-slate-900">3. Consent & Scheduled Notices</h4>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:text-royal-600 transition-all" />
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Section 5 notices in English, Hindi & Kannada with one-click withdrawal.
+          <p className="text-xs text-slate-500 mt-2.5 leading-relaxed">
+            Publish Section 5 notices in English, Hindi, and Kannada with affirmative logging.
           </p>
         </div>
       </div>
     </div>
   );
 };
+

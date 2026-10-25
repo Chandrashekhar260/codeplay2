@@ -7,21 +7,13 @@ import {
   AlertCircle,
   FileText,
   Upload,
-  Share2,
-  Filter,
   RefreshCw,
   X,
   Eye,
-  Phone,
   MessageSquare,
   Laptop,
   Check,
-  Lock,
-  ArrowRight,
-  Sparkles,
-  Layers,
   Copy,
-  ExternalLink,
 } from 'lucide-react';
 import type { Purpose, ConsentRecord, ConsentNotice, ConsentAnalytics, ConsentReceipt } from '../types';
 import { Badge } from '../components/ui/Badge';
@@ -38,7 +30,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
 
   // Analytics & KPIs
   const [analytics, setAnalytics] = useState<ConsentAnalytics | null>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [, setLoadingAnalytics] = useState(false);
 
   // Global Ledger State
   const [allRecords, setAllRecords] = useState<ConsentRecord[]>([]);
@@ -49,7 +41,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
 
   // Receipt Modal State
   const [selectedReceipt, setSelectedReceipt] = useState<ConsentReceipt | null>(null);
-  const [loadingReceipt, setLoadingReceipt] = useState(false);
+  const [, setLoadingReceipt] = useState(false);
 
   // Notices State
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'hi' | 'kn'>('en');
@@ -277,27 +269,33 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded border border-slate-200">
+          <div className="flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/60">
             <button
               onClick={() => setActiveTab('ledger')}
-              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                activeTab === 'ledger' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                activeTab === 'ledger'
+                  ? 'btn-primary shadow-xs'
+                  : 'text-slate-600 hover:text-royal-700 hover:bg-white/80'
               }`}
             >
               Enterprise Ledger
             </button>
             <button
               onClick={() => setActiveTab('record')}
-              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                activeTab === 'record' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                activeTab === 'record'
+                  ? 'btn-primary shadow-xs'
+                  : 'text-slate-600 hover:text-royal-700 hover:bg-white/80'
               }`}
             >
               Capture & Bulk Import
             </button>
             <button
               onClick={() => setActiveTab('notices')}
-              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                activeTab === 'notices' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                activeTab === 'notices'
+                  ? 'btn-primary shadow-xs'
+                  : 'text-slate-600 hover:text-royal-700 hover:bg-white/80'
               }`}
             >
               Multilingual Notices & Widget
@@ -308,7 +306,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
         {/* Analytics KPI Cards */}
         {analytics && (
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-xs">
+            <div className="bg-white border border-slate-200 hover:border-[#1b6c80] rounded-xl p-4 shadow-xs interactive-lift">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                 Total Consents Recorded
               </span>
@@ -316,39 +314,39 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
               <div className="text-[11px] text-slate-500 mt-0.5">Across all registered purposes</div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-xs">
+            <div className="bg-white border border-slate-200 hover:border-[#1e7b4f] rounded-xl p-4 shadow-xs interactive-lift">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                 Active Compliance Posture
               </span>
-              <div className="text-xl font-bold text-emerald-600 mt-1 flex items-center gap-1.5">
+              <div className="text-xl font-bold text-[#1e7b4f] mt-1 flex items-center gap-1.5">
                 <span>{analytics.activeRate}%</span>
                 <span className="text-xs font-semibold text-slate-600">({analytics.active} Active)</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
-                  className="bg-emerald-500 h-1.5 rounded-full"
+                  className="bg-[#1e7b4f] h-1.5 rounded-full"
                   style={{ width: `${analytics.activeRate}%` }}
                 />
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-xs">
+            <div className="bg-white border border-slate-200 hover:border-[#92400e] rounded-xl p-4 shadow-xs interactive-lift">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                 Section 6(4) Withdrawals
               </span>
-              <div className="text-xl font-bold text-amber-600 mt-1">{analytics.withdrawn}</div>
+              <div className="text-xl font-bold text-[#92400e] mt-1">{analytics.withdrawn}</div>
               <div className="text-[11px] text-slate-500 mt-0.5">Promptly honored and isolated</div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-xs">
+            <div className="bg-white border border-slate-200 hover:border-[#1b6c80] rounded-xl p-4 shadow-xs interactive-lift">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                 Top Capture Channel
               </span>
-              <div className="text-sm font-bold text-blue-600 mt-1 truncate">
+              <div className="text-sm font-bold text-[#1b6c80] mt-1 truncate">
                 {Object.keys(analytics.channels)[0]?.replace('_', ' ') || 'WhatsApp & Web'}
               </div>
               <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <ShieldCheck className="w-3.5 h-3.5 text-[#1e7b4f]" />
                 <span>Affirmative Proof Logged</span>
               </div>
             </div>
@@ -376,7 +374,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
               </div>
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-colors"
+                className="btn-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-xs"
               >
                 Search
               </button>
@@ -387,7 +385,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
                     setSearchQuery('');
                     setTimeout(loadRecords, 10);
                   }}
-                  className="px-2 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+                  className="btn-cancel px-2.5 py-1.5 text-xs font-semibold rounded-lg cursor-pointer"
                 >
                   Clear
                 </button>
@@ -505,7 +503,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleViewReceipt(record.recordId)}
-                              className="px-2 py-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded transition-colors flex items-center gap-1 border border-blue-200/60"
+                              className="btn-secondary px-2.5 py-1 text-[11px] font-semibold rounded-md flex items-center gap-1 cursor-pointer shadow-2xs"
                               title="View Statutory Consent Receipt"
                             >
                               <Eye className="w-3 h-3" />
@@ -515,7 +513,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
                             {record.status === 'GIVEN' && (
                               <button
                                 onClick={() => handleWithdraw(record)}
-                                className="px-2 py-1 text-[11px] font-medium text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded transition-colors border border-rose-200/60"
+                                className="btn-danger px-2.5 py-1 text-[11px] font-semibold rounded-md cursor-pointer shadow-2xs"
                                 title="Withdraw consent under DPDP Section 6(4)"
                               >
                                 Withdraw
@@ -543,23 +541,23 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
       {activeTab === 'record' && (
         <div className="space-y-6">
           {/* Sub-mode switcher */}
-          <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
             <button
               onClick={() => setRecordMode('single')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 recordMode === 'single'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'btn-primary shadow-xs'
+                  : 'btn-secondary shadow-2xs'
               }`}
             >
               Single Consent Registration
             </button>
             <button
               onClick={() => setRecordMode('bulk')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 recordMode === 'bulk'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'btn-primary shadow-xs'
+                  : 'btn-secondary shadow-2xs'
               }`}
             >
               Bulk CSV / Batch Importer
@@ -600,7 +598,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
                   <input
                     type="text"
                     required
-                    placeholder="e.g. +91 9845012345 or customer@example.com"
+                    placeholder="e.g. +91 9845012345 or citizen@srujana.in"
                     value={formUserRef}
                     onChange={(e) => setFormUserRef(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -675,7 +673,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-xs transition-colors shadow-xs disabled:opacity-50"
+                  className="btn-primary px-5 py-2.5 rounded-xl text-xs font-semibold shadow-sm cursor-pointer"
                 >
                   {formSubmitting ? 'Recording into Ledger...' : 'Commit Consent Record'}
                 </button>
@@ -750,7 +748,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
                   <button
                     type="submit"
                     disabled={bulkSubmitting}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded text-xs transition-colors shadow-xs flex items-center gap-2 disabled:opacity-50"
+                    className="btn-primary px-5 py-2.5 rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 cursor-pointer"
                   >
                     <Upload className="w-4 h-4" />
                     <span>{bulkSubmitting ? 'Importing Batch...' : 'Import Batch into DPDP Ledger'}</span>
@@ -768,10 +766,10 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
       {activeTab === 'notices' && (
         <div className="space-y-6">
           {/* Shareable Public Consent Widget Link Card */}
-          <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-xl p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-[#1b6c80] rounded-lg p-5 text-white border border-[#155666] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] bg-blue-500/30 text-blue-200 border border-blue-400/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                Direct Customer Opt-In
+              <span className="text-[10px] bg-white/10 text-white border border-white/20 px-2 py-0.5 rounded font-medium tracking-wide">
+                Direct citizen opt-in
               </span>
               <h3 className="text-base font-bold text-white">
                 Shareable Customer Privacy & Rights Portal Link
@@ -784,7 +782,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
             <div className="flex items-center gap-2">
               <button
                 onClick={copyPublicLink}
-                className="px-4 py-2 bg-white text-slate-900 hover:bg-blue-50 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 shadow"
+                className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer shadow-sm flex items-center gap-2"
               >
                 {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                 <span>{copiedLink ? 'Copied Link!' : 'Copy Portal URL'}</span>
@@ -795,17 +793,17 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
           {/* Language Selector */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+              <Globe2 className="w-3.5 h-3.5 text-royal-600" />
               Notice Language (Eighth Schedule):
             </span>
             {(['en', 'hi', 'kn'] as const).map((lang) => (
               <button
                 key={lang}
                 onClick={() => setSelectedLanguage(lang)}
-                className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   selectedLanguage === lang
-                    ? 'bg-blue-600 text-white border-blue-600 font-semibold shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    ? 'btn-primary shadow-xs'
+                    : 'btn-secondary shadow-2xs'
                 }`}
               >
                 {lang === 'en' ? 'English (EN)' : lang === 'hi' ? 'हिन्दी (Hindi)' : 'ಕನ್ನಡ (Kannada)'}
@@ -996,7 +994,7 @@ export const ConsentPage: React.FC<ConsentPageProps> = ({ purposes, onConsentRec
               </span>
               <button
                 onClick={() => setSelectedReceipt(null)}
-                className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-semibold"
+                className="btn-cancel px-4 py-2 text-xs font-semibold rounded-lg cursor-pointer"
               >
                 Close Receipt
               </button>

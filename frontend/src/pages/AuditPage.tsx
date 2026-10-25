@@ -33,12 +33,12 @@ export const AuditPage: React.FC = () => {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white border border-slate-200 rounded p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-            Append-Only Statutory Audit Trail
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            Append-only statutory audit trail
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 mt-0.5">
             Immutable compliance ledger recording all PII discoveries, classifications, and consent state changes.
           </p>
         </div>
@@ -47,7 +47,7 @@ export const AuditPage: React.FC = () => {
           <select
             value={filterAction}
             onChange={(e) => setFilterAction(e.target.value)}
-            className="px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:outline-none bg-white text-slate-800"
+            className="px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-royal-500 bg-white text-slate-900 font-medium"
           >
             <option value="ALL">All Event Types</option>
             <option value="CONSENT">Consent Events</option>
@@ -58,35 +58,35 @@ export const AuditPage: React.FC = () => {
 
           <button
             onClick={loadAuditEvents}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50"
+            className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer shadow-xs flex items-center gap-2"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Reload</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-royal-600' : 'text-slate-500'}`} />
+            <span>Reload Ledger</span>
           </button>
         </div>
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white border border-slate-200 rounded overflow-hidden">
-        <div className="p-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-900">
             Verified Event Ledger Entries ({filteredEvents.length})
           </span>
-          <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1">
+          <span className="text-[11px] font-mono text-emerald-700 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            Append-Only Enforced
+            Append-only Enforced
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold text-[10px]">
+            <thead className="bg-[#f4f6f8] border-b border-[#e2e4e8] text-[#5d5f60] font-medium text-[11px]">
               <tr>
-                <th className="py-2.5 px-4">Action</th>
-                <th className="py-2.5 px-4">Resource Target</th>
-                <th className="py-2.5 px-4">Actor / Origin</th>
-                <th className="py-2.5 px-4">Event Payload / Diff</th>
-                <th className="py-2.5 px-4">Timestamp</th>
+                <th className="py-2.5 px-4 font-medium">Action</th>
+                <th className="py-2.5 px-4 font-medium">Resource target</th>
+                <th className="py-2.5 px-4 font-medium">Actor / origin</th>
+                <th className="py-2.5 px-4 font-medium">Event payload</th>
+                <th className="py-2.5 px-4 font-medium">Timestamp</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-normal">

@@ -1,5 +1,7 @@
 import axios from 'axios';
 import type {
+  User,
+  Tenant,
   AuthResponse,
   DataSource,
   ScanFinding,
@@ -58,11 +60,23 @@ apiClient.interceptors.response.use(
 export const api = {
   // Auth
   auth: {
-    login: async (email: string, password: string): Promise<AuthResponse> => {
-      const res = await apiClient.post('/auth/login', { email, password });
+    login: async (email: string, password: string, userType?: 'MSME' | 'CITIZEN'): Promise<AuthResponse> => {
+      const res = await apiClient.post('/auth/login', { email, password, userType });
       return res.data.data;
     },
-    getMe: async () => {
+    register: async (payload: {
+      userType: 'MSME' | 'CITIZEN';
+      tenantName?: string;
+      email: string;
+      password: string;
+      firstName: string;
+      lastName?: string;
+      phone?: string;
+    }): Promise<AuthResponse> => {
+      const res = await apiClient.post('/auth/register', payload);
+      return res.data.data;
+    },
+    getMe: async (): Promise<{ user: User; tenant: Tenant }> => {
       const res = await apiClient.get('/auth/me');
       return res.data.data;
     },
@@ -254,6 +268,9 @@ export const api = {
       affectedActivityId?: string;
       businessWebsite?: string;
       tenantId?: string;
+      isMinorChild?: boolean;
+      parentGuardianRef?: string;
+      guardianRelationship?: 'FATHER' | 'MOTHER' | 'LEGAL_GUARDIAN' | 'SELF';
     }): Promise<DsrRequest> => {
       const res = await apiClient.post('/dsr/portal/submit', data);
       return res.data.data;

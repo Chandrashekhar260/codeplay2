@@ -10,6 +10,10 @@ export const createDsrRequestSchema = z.object({
   affectedActivityId: z.string().uuid().optional(),
   tenantId: z.string().optional(),
   businessWebsite: z.string().optional(),
+  // DPDP Section 9 Verifiable Parental Consent & Representation
+  isMinorChild: z.boolean().optional(),
+  parentGuardianRef: z.string().optional(),
+  guardianRelationship: z.enum(['FATHER', 'MOTHER', 'LEGAL_GUARDIAN', 'SELF']).optional(),
 });
 
 export const resolveDsrRequestSchema = z.object({

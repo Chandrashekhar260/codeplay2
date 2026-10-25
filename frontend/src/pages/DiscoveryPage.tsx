@@ -101,20 +101,21 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
               disabled={isUploading}
               className="hidden"
             />
-            <span className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white rounded cursor-pointer transition-colors shadow-sm">
-              {isUploading ? 'Scanning File via Python Engine...' : 'Select File to Scan'}
+            <span className="btn-primary px-5 py-2.5 text-xs font-bold rounded-xl cursor-pointer shadow-sm hover:shadow inline-flex items-center gap-2">
+              <UploadCloud className="w-4 h-4" />
+              <span>{isUploading ? 'Scanning File via Python Engine...' : 'Select File to Scan'}</span>
             </span>
           </label>
 
           {uploadSuccess && (
-            <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded p-2 text-left flex items-center gap-2">
+            <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-left flex items-center gap-2 font-medium">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{uploadSuccess}</span>
             </p>
           )}
 
           {uploadError && (
-            <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded p-2 text-left flex items-center gap-2">
+            <p className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3 text-left flex items-center gap-2 font-medium">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{uploadError}</span>
             </p>
@@ -125,16 +126,16 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
       {/* Main Content Split: Sources on Left, Findings on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Source List */}
-        <div className="bg-white border border-slate-200 rounded">
-          <div className="p-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-900">
               Discovered Sources ({sources.length})
             </span>
           </div>
 
           <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
             {sources.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">No data sources uploaded yet.</div>
+              <div className="p-6 text-center text-xs text-slate-500 font-medium">No data sources uploaded yet.</div>
             ) : (
               sources.map((src) => {
                 const isSelected = src.sourceId === selectedSourceId;
@@ -142,15 +143,17 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
                   <button
                     key={src.sourceId}
                     onClick={() => handleSelectSource(src.sourceId)}
-                    className={`w-full text-left p-3.5 transition-colors flex items-start gap-3 ${
-                      isSelected ? 'bg-blue-50/60 border-l-4 border-blue-600' : 'hover:bg-slate-50'
+                    className={`w-full text-left p-4 transition-all duration-150 flex items-start gap-3 cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-50/80 border-l-4 border-royal-600 text-royal-950 font-semibold'
+                        : 'hover:bg-slate-50 hover:translate-x-0.5 text-slate-700'
                     }`}
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                    <FileSpreadsheet className={`w-4 h-4 shrink-0 mt-0.5 ${isSelected ? 'text-royal-600' : 'text-slate-400'}`} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-slate-900 truncate">{src.name}</p>
+                      <p className="text-xs font-bold truncate">{src.name}</p>
                       <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1">
-                        <span className="uppercase font-mono text-[10px]">{src.sourceType}</span>
+                        <span className="font-mono text-[10px] font-medium">{src.sourceType}</span>
                         <span>•</span>
                         <Badge status={src.status} size="sm" />
                       </div>
@@ -167,49 +170,49 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
           {selectedSource ? (
             <>
               {/* Findings Table */}
-              <div className="bg-white border border-slate-200 rounded">
-                <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <h4 className="text-xs font-bold text-slate-900">
                       Discovered PII Fields — {selectedSource.name}
                     </h4>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-500 mt-0.5">
                       Identified personal data columns with mathematical checksums & regex validation.
                     </p>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 bg-slate-200 text-slate-800 rounded tabular-nums">
+                  <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-royal-700 border border-blue-200 rounded-lg tabular-nums">
                     {findings.length} fields
                   </span>
                 </div>
 
                 {loadingDetails ? (
-                  <div className="p-8 text-center text-xs text-slate-500 animate-pulse">Loading scan findings...</div>
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium animate-pulse">Loading scan findings...</div>
                 ) : findings.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-slate-500">No personal data detected in this source.</div>
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium">No personal data detected in this source.</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold text-[10px]">
+                      <thead className="bg-slate-50/90 border-b border-slate-200 text-slate-600 uppercase font-semibold text-[10px]">
                         <tr>
-                          <th className="py-2.5 px-4">Column Name</th>
-                          <th className="py-2.5 px-4">PII Category</th>
-                          <th className="py-2.5 px-4">Sensitivity Level</th>
-                          <th className="py-2.5 px-4">Validation Method</th>
+                          <th className="py-3 px-4">Column Name</th>
+                          <th className="py-3 px-4">PII Category</th>
+                          <th className="py-3 px-4">Sensitivity Level</th>
+                          <th className="py-3 px-4">Validation Method</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-normal">
                         {findings.map((finding) => (
-                          <tr key={finding.findingId} className="hover:bg-slate-50/80">
-                            <td className="py-2.5 px-4 font-mono font-medium text-slate-900">{finding.fieldName}</td>
-                            <td className="py-2.5 px-4">
-                              <span className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-semibold text-[11px]">
+                          <tr key={finding.findingId} className="hover:bg-blue-50/40 transition-colors">
+                            <td className="py-3 px-4 font-mono font-medium text-slate-900">{finding.fieldName}</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-md font-semibold text-[11px] border border-slate-200/60">
                                 {finding.piiCategories}
                               </span>
                             </td>
-                            <td className="py-2.5 px-4">
+                            <td className="py-3 px-4">
                               <Badge severity={finding.sensitivityLevel} size="sm" />
                             </td>
-                            <td className="py-2.5 px-4 text-slate-500 text-[11px]">
+                            <td className="py-3 px-4 text-slate-500 text-[11px]">
                               {finding.piiCategories === 'AADHAAR'
                                 ? 'Verhoeff Algorithm Checksum'
                                 : finding.piiCategories === 'PAN'
@@ -227,9 +230,9 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
               </div>
 
               {/* Remediation Flags */}
-              <div className="bg-white border border-slate-200 rounded">
-                <div className="p-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900">
                     Remediation Risk Flags ({flags.length})
                   </h4>
                   <span className="text-[11px] text-slate-500">Mandatory DPDP Section 8 Safeguards</span>
@@ -239,28 +242,60 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
                   {flags.length === 0 ? (
                     <div className="text-xs text-slate-500">No active risk flags for this source.</div>
                   ) : (
-                    flags.map((flag) => (
-                      <div
-                        key={flag.flagId}
-                        className="flex items-start gap-3 p-3 bg-rose-50/50 border border-rose-200 rounded text-xs"
-                      >
-                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-rose-900">{flag.flagType}</span>
-                            <Badge severity={flag.severity} size="sm" />
+                      flags.map((flag) => {
+                        const isSection9 = flag.flagType === 'SECTION_9_CHILD_DATA_SAFEGUARD';
+                        return (
+                          <div
+                            key={flag.flagId}
+                            className={`flex items-start gap-3 p-3 border rounded text-xs ${
+                              isSection9
+                                ? 'bg-amber-50/70 border-amber-300'
+                                : 'bg-rose-50/50 border-rose-200'
+                            }`}
+                          >
+                            <AlertTriangle
+                              className={`w-4 h-4 shrink-0 mt-0.5 ${
+                                isSection9 ? 'text-amber-600' : 'text-rose-600'
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`font-bold ${
+                                    isSection9 ? 'text-amber-950' : 'text-rose-900'
+                                  }`}
+                                >
+                                  {flag.flagType}
+                                </span>
+                                <Badge severity={flag.severity} size="sm" />
+                                {isSection9 && (
+                                  <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-200/80 text-amber-950 rounded">
+                                    DPDP §9 Fine up to ₹200 Cr
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-700 text-[11px] mt-1">
+                                {isSection9
+                                  ? 'Section 9 Children Personal Data detected. Verifiable Parental Consent (VPC) mandatory prior to processing. Absolute statutory prohibition on behavioral tracking, profiling, or targeted advertising directed at children.'
+                                  : flag.flagType === 'UNENCRYPTED_CRITICAL_PII'
+                                  ? 'Aadhaar or Medical diagnostic data found in plaintext spreadsheet. Must be encrypted at rest.'
+                                  : flag.flagType === 'UNPROTECTED_CONTACT_IDENTIFIER'
+                                  ? 'Customer contact coordinates exposed without masking or role-based access restrictions.'
+                                  : 'Personal data present requiring governance and access controls.'}
+                              </p>
+                            </div>
+                            <span
+                              className={`px-2 py-0.5 text-[10px] font-semibold bg-white border rounded ${
+                                isSection9
+                                  ? 'border-amber-300 text-amber-800'
+                                  : 'border-rose-300 text-rose-700'
+                              }`}
+                            >
+                              {flag.status}
+                            </span>
                           </div>
-                          <p className="text-slate-600 text-[11px] mt-1">
-                            {flag.flagType === 'UNENCRYPTED_CRITICAL_PII'
-                              ? 'Aadhaar or Medical diagnostic data found in plaintext spreadsheet. Must be encrypted at rest.'
-                              : 'Customer contact coordinates exposed without masking or role-based access restrictions.'}
-                          </p>
-                        </div>
-                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-white border border-rose-300 text-rose-700 rounded">
-                          {flag.status}
-                        </span>
-                      </div>
-                    ))
+                        );
+                      })
                   )}
                 </div>
               </div>

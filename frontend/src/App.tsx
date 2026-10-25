@@ -53,6 +53,24 @@ export function App() {
   const [realConsentsCount, setRealConsentsCount] = useState<number>(0);
   const [pendingDsrCount, setPendingDsrCount] = useState<number>(0);
 
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    try {
+      const saved = localStorage.getItem('datasentinel_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem('datasentinel_token');
+    localStorage.removeItem('datasentinel_user');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setIsPortalView(false);
+    window.location.hash = '';
+  };
+
   const navigateToTab = (tab: NavTab) => {
     setIsPortalView(false);
     window.history.pushState({ tab }, '', `#${tab}`);
@@ -130,7 +148,9 @@ export function App() {
         setCurrentTab(tabFromHash());
       }
     };
-    const handleUnauthorized = () => setIsAuthenticated(false);
+    const handleUnauthorized = () => {
+      handleLogout();
+    };
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('datasentinel:unauthorized', handleUnauthorized);
 
@@ -141,30 +161,25 @@ export function App() {
         try {
           const me = await api.auth.getMe();
           setIsAuthenticated(true);
+          setCurrentUser(me.user);
           if (me.tenant?.name) setTenantName(me.tenant.name);
-          await loadWorkspaceData();
+
+          // Route to portal if user is an Individual Citizen
+          if (me.user?.userType === 'CITIZEN' || me.user?.role === 'CITIZEN') {
+            setIsPortalView(true);
+          } else {
+            await loadWorkspaceData();
+          }
           setIsAuthChecking(false);
           return;
         } catch {
-          localStorage.removeItem('datasentinel_token');
+          handleLogout();
         }
       }
 
-      // Auto-authenticate as registered demo DPO user
-      try {
-        const loginData = await api.auth.login(
-          'ramesh.kumar@aarogyadiagnostics.in',
-          'Password123!'
-        );
-        localStorage.setItem('datasentinel_token', loginData.token);
-        setIsAuthenticated(true);
-        if (loginData.tenant?.name) setTenantName(loginData.tenant.name);
-        await loadWorkspaceData();
-      } catch {
-        setIsAuthenticated(false);
-      } finally {
-        setIsAuthChecking(false);
-      }
+      // No token present — do not force auto-login, present LoginModal
+      setIsAuthenticated(false);
+      setIsAuthChecking(false);
     }
 
     initAuth();
@@ -174,9 +189,15 @@ export function App() {
     };
   }, []);
 
-  // 1. Citizen / Data Principal Self-Service Portal (Public access)
+  // 1. Citizen / Data Principal Self-Service Portal
   if (isPortalView) {
-    return <DataPrincipalPortal onBackToAdmin={closePortalView} />;
+    return (
+      <DataPrincipalPortal
+        onBackToAdmin={currentUser?.userType === 'MSME' ? closePortalView : undefined}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   // 2. Authentication Loading / Login State
@@ -196,8 +217,15 @@ export function App() {
       <LoginModal
         onLoginSuccess={(data) => {
           setIsAuthenticated(true);
+          setCurrentUser(data.user);
           if (data.tenant?.name) setTenantName(data.tenant.name);
-          loadWorkspaceData();
+
+          if (data.user?.userType === 'CITIZEN' || data.user?.role === 'CITIZEN') {
+            setIsPortalView(true);
+          } else {
+            setIsPortalView(false);
+            loadWorkspaceData();
+          }
         }}
       />
     );
@@ -205,28 +233,33 @@ export function App() {
 
   // 3. Authenticated Enterprise Dashboard
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 font-sans">
-      {/* Persistent Enterprise Sidebar */}
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-900 text-slate-900 font-sans">
+      {/* Persistent Enterprise Navy Sidebar */}
       <Sidebar
         currentTab={currentTab}
         onTabChange={navigateToTab}
         tenantName={tenantName}
         pendingDsrCount={pendingDsrCount}
         onLaunchPortal={openPortalView}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
-      {/* Main Content Workspace */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header */}
+      {/* Main Content Workspace Frame */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-100">
+        {/* Top Header in Tinted Frame */}
         <Topbar
           currentTab={currentTab}
           onRefresh={loadWorkspaceData}
           isRefreshing={isRefreshing}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
-        {/* Scrollable View Container */}
-        <main className="flex-1 overflow-y-auto bg-slate-50">
-          {currentTab === 'dashboard' && (
+        {/* Crisp Inset White Sheet with Subtle Light-Grey Canvas */}
+        <div className="flex-1 m-3 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <main className="flex-1 overflow-y-auto bg-slate-50/40 p-6 sm:p-8">
+            {currentTab === 'dashboard' && (
             <OverviewPage
               onNavigate={navigateToTab}
               stats={{
@@ -275,7 +308,8 @@ export function App() {
           {currentTab === 'cookies' && <CookieGovernancePage />}
 
           {currentTab === 'audit' && <AuditPage />}
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   );

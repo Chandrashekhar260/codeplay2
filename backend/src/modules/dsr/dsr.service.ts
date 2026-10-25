@@ -154,13 +154,18 @@ export async function submitDsrRequest(
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
 
+  // If request is filed by a parent/guardian on behalf of a minor under Section 9:
+  const formattedDetails = input.isMinorChild
+    ? `[DPDP §9 MINOR DATA PRINCIPAL - Lawful Guardian: ${input.parentGuardianRef || 'Parent'} (${input.guardianRelationship || 'LEGAL_GUARDIAN'})] ${input.details.trim()}`
+    : input.details.trim();
+
   const request = await prisma.dsrRequest.create({
     data: {
       tenantId,
       requestType: input.requestType,
       status: 'SUBMITTED',
       userRef: input.userRef.trim(),
-      details: input.details.trim(),
+      details: formattedDetails,
       fieldToCorrect: input.fieldToCorrect?.trim() || null,
       currentValue: input.currentValue?.trim() || null,
       correctedValue: input.correctedValue?.trim() || null,
@@ -175,7 +180,7 @@ export async function submitDsrRequest(
 
   await recordAuditEvent({
     tenantId,
-    action: 'DSR_REQUEST_SUBMITTED',
+    action: input.isMinorChild ? 'SECTION_9_MINOR_DSR_SUBMITTED' : 'DSR_REQUEST_SUBMITTED',
     resourceType: 'DSR_REQUEST',
     resourceId: request.requestId,
     diffJson: {
@@ -184,6 +189,10 @@ export async function submitDsrRequest(
       fieldToCorrect: request.fieldToCorrect,
       correctedValue: request.correctedValue,
       affectedActivity: request.activity?.name,
+      isMinorChild: input.isMinorChild || false,
+      parentGuardianRef: input.parentGuardianRef || null,
+      guardianRelationship: input.guardianRelationship || null,
+      statutorySection: input.isMinorChild ? 'DPDP_ACT_2023_SECTION_9' : 'DPDP_ACT_2023_SECTION_12',
     },
     ipAddress,
     userAgent,

@@ -6,6 +6,8 @@ interface BadgeProps {
   classification?: Classification;
   severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
   status?: string;
+  variant?: 'success' | 'warning' | 'danger' | 'neutral' | string;
+  label?: React.ReactNode;
   size?: 'sm' | 'md';
   children?: React.ReactNode;
 }
@@ -14,6 +16,8 @@ export const Badge: React.FC<BadgeProps> = ({
   classification,
   severity,
   status,
+  variant,
+  label,
   size = 'md',
   children,
 }) => {
@@ -85,25 +89,28 @@ export const Badge: React.FC<BadgeProps> = ({
     }
   }
 
-  if (status) {
-    const isSuccess = ['GIVEN', 'ACTIVE', 'RESOLVED', 'VERIFIED'].includes(status);
-    const isWarning = ['WITHDRAWN', 'QUEUED', 'OPEN', 'IN_REVIEW'].includes(status);
+  if (status || variant) {
+    const isSuccess = variant === 'success' || (status ? ['GIVEN', 'ACTIVE', 'RESOLVED', 'VERIFIED'].includes(status) : false);
+    const isWarning = variant === 'warning' || (status ? ['WITHDRAWN', 'QUEUED', 'OPEN', 'IN_REVIEW'].includes(status) : false);
+    const isDanger = variant === 'danger';
     const colorClasses = isSuccess
       ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
       : isWarning
       ? 'text-amber-800 bg-amber-50 border-amber-200'
+      : isDanger
+      ? 'text-rose-700 bg-rose-50 border-rose-200'
       : 'text-slate-700 bg-slate-100 border-slate-200';
 
     return (
       <span className={`inline-flex items-center font-medium border rounded ${colorClasses} ${sizeClasses}`}>
-        {status}
+        {children ?? label ?? status}
       </span>
     );
   }
 
   return (
     <span className={`inline-flex items-center font-medium bg-slate-100 text-slate-800 border border-slate-200 rounded ${sizeClasses}`}>
-      {children}
+      {children ?? label}
     </span>
   );
 };

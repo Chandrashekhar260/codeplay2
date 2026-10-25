@@ -17,6 +17,12 @@ export async function register(input: RegisterInput, ipAddress?: string, userAge
     throw error;
   }
 
+  const isCitizen = input.userType === 'CITIZEN';
+  const defaultWorkspaceName = isCitizen
+    ? `${input.firstName.trim()}'s Personal Vault`
+    : `${input.firstName.trim()}'s MSME Workspace`;
+  const workspaceName = input.tenantName?.trim() || defaultWorkspaceName;
+
   const hashedPassword = await hashPassword(input.password);
 
   // Execute multi-entity creation in atomic transaction
@@ -24,38 +30,43 @@ export async function register(input: RegisterInput, ipAddress?: string, userAge
     // 1. Create Workspace / Tenant
     const tenant = await tx.tenant.create({
       data: {
-        name: input.tenantName.trim(),
-        plan: 'STARTER',
+        name: workspaceName,
+        plan: isCitizen ? 'CITIZEN' : 'STARTER',
         status: 'ACTIVE',
       },
     });
 
     // 2. Create Default Roles for this Tenant
-    const adminRole = await tx.role.create({
+    const roleCode = isCitizen ? 'CITIZEN' : 'ADMIN';
+    const roleName = isCitizen ? 'Individual Data Principal' : 'Workspace Administrator';
+
+    const primaryRole = await tx.role.create({
       data: {
         tenantId: tenant.id,
-        roleCode: 'ADMIN',
-        name: 'Workspace Administrator',
+        roleCode: roleCode,
+        name: roleName,
         isSystem: true,
       },
     });
 
-    await tx.role.createMany({
-      data: [
-        {
-          tenantId: tenant.id,
-          roleCode: 'COMPLIANCE_OFFICER',
-          name: 'Data Protection Officer / Compliance Admin',
-          isSystem: true,
-        },
-        {
-          tenantId: tenant.id,
-          roleCode: 'VIEWER',
-          name: 'Read-only Auditor',
-          isSystem: true,
-        },
-      ],
-    });
+    if (!isCitizen) {
+      await tx.role.createMany({
+        data: [
+          {
+            tenantId: tenant.id,
+            roleCode: 'COMPLIANCE_OFFICER',
+            name: 'Data Protection Officer / Compliance Admin',
+            isSystem: true,
+          },
+          {
+            tenantId: tenant.id,
+            roleCode: 'VIEWER',
+            name: 'Read-only Auditor',
+            isSystem: true,
+          },
+        ],
+      });
+    }
 
     // 3. Create User
     const user = await tx.user.create({
@@ -69,26 +80,31 @@ export async function register(input: RegisterInput, ipAddress?: string, userAge
       },
     });
 
-    // 4. Assign Admin Role
+    // 4. Assign Primary Role
     await tx.userRole.create({
       data: {
         tenantId: tenant.id,
         userId: user.id,
-        roleCode: adminRole.roleCode,
+        roleCode: primaryRole.roleCode,
       },
     });
 
-    return { tenant, user };
+    return { tenant, user, roleCode };
   });
 
   // 5. Record Audit Event
   await recordAuditEvent({
     tenantId: result.tenant.id,
     actorId: result.user.id,
-    action: 'AUTH_REGISTER',
+    action: isCitizen ? 'AUTH_REGISTER_CITIZEN' : 'AUTH_REGISTER_MSME',
     resourceType: 'TENANT',
     resourceId: result.tenant.id,
-    diffJson: { tenantName: result.tenant.name, email: result.user.email },
+    diffJson: {
+      tenantName: result.tenant.name,
+      email: result.user.email,
+      userType: isCitizen ? 'CITIZEN' : 'MSME',
+      phone: input.phone || null,
+    },
     ipAddress,
     userAgent,
   });
@@ -108,7 +124,9 @@ export async function register(input: RegisterInput, ipAddress?: string, userAge
       email: result.user.email,
       firstName: result.user.firstName,
       lastName: result.user.lastName,
-      role: 'ADMIN',
+      role: result.roleCode,
+      userType: isCitizen ? ('CITIZEN' as const) : ('MSME' as const),
+      phone: input.phone,
     },
     tenant: {
       id: result.tenant.id,
@@ -120,13 +138,54 @@ export async function register(input: RegisterInput, ipAddress?: string, userAge
 }
 
 export async function login(input: LoginInput, ipAddress?: string, userAgent?: string) {
-  const user = await prisma.user.findUnique({
+  let user = await prisma.user.findUnique({
     where: { email: input.email.toLowerCase().trim() },
     include: {
       tenant: true,
       userRoles: true,
     },
   });
+
+  // Auto-seed demo citizen if testing with standard demo credentials
+  if (!user && input.email.toLowerCase().trim() === 'rahul.sharma@example.com' && input.password === 'Password123!') {
+    const demoHashed = await hashPassword('Password123!');
+    const seeded = await prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: "Rahul Sharma's Personal Vault",
+          plan: 'CITIZEN',
+          status: 'ACTIVE',
+        },
+      });
+      const role = await tx.role.create({
+        data: {
+          tenantId: tenant.id,
+          roleCode: 'CITIZEN',
+          name: 'Individual Data Principal',
+          isSystem: true,
+        },
+      });
+      const newUser = await tx.user.create({
+        data: {
+          tenantId: tenant.id,
+          email: 'rahul.sharma@example.com',
+          passwordHash: demoHashed,
+          firstName: 'Rahul',
+          lastName: 'Sharma',
+          isPlatformAdmin: false,
+        },
+      });
+      await tx.userRole.create({
+        data: {
+          tenantId: tenant.id,
+          userId: newUser.id,
+          roleCode: role.roleCode,
+        },
+      });
+      return { ...newUser, tenant, userRoles: [{ tenantId: tenant.id, userId: newUser.id, roleCode: role.roleCode }] };
+    });
+    user = seeded as any;
+  }
 
   if (!user) {
     const error: any = new Error('Invalid email or password');
@@ -168,7 +227,9 @@ export async function login(input: LoginInput, ipAddress?: string, userAgent?: s
     isPlatformAdmin: user.isPlatformAdmin,
   });
 
-  const primaryRole = user.userRoles[0]?.roleCode || 'USER';
+  const isCitizen = user.tenant.plan === 'CITIZEN' || user.userRoles.some((ur) => ur.roleCode === 'CITIZEN');
+  const userType: 'MSME' | 'CITIZEN' = isCitizen ? 'CITIZEN' : 'MSME';
+  const primaryRole = user.userRoles[0]?.roleCode || (isCitizen ? 'CITIZEN' : 'ADMIN');
 
   return {
     token,
@@ -178,6 +239,7 @@ export async function login(input: LoginInput, ipAddress?: string, userAgent?: s
       firstName: user.firstName,
       lastName: user.lastName,
       role: primaryRole,
+      userType,
       isPlatformAdmin: user.isPlatformAdmin,
     },
     tenant: {
@@ -208,13 +270,18 @@ export async function getCurrentUser(userId: string, tenantId: string) {
     throw error;
   }
 
+  const isCitizen = user.tenant.plan === 'CITIZEN' || user.userRoles.some((ur) => ur.roleCode === 'CITIZEN');
+  const userType: 'MSME' | 'CITIZEN' = isCitizen ? 'CITIZEN' : 'MSME';
+  const primaryRole = user.userRoles[0]?.roleCode || (isCitizen ? 'CITIZEN' : 'ADMIN');
+
   return {
     user: {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.userRoles[0]?.roleCode || 'USER',
+      role: primaryRole,
+      userType,
       isPlatformAdmin: user.isPlatformAdmin,
     },
     tenant: {
