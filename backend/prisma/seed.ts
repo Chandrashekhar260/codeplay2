@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -73,6 +74,68 @@ async function main() {
   });
 
   console.log(`✅ Sample User: ${user.email} (Password: Password123!)`);
+
+  // 3b. Sample Citizen Account (Rahul Sharma - Data Principal)
+  const citizenTenant = await prisma.tenant.upsert({
+    where: { id: 'tenant-citizen-rahul-vault' },
+    update: {},
+    create: {
+      id: 'tenant-citizen-rahul-vault',
+      name: "Rahul Sharma's Personal Vault",
+      plan: 'CITIZEN',
+      status: 'ACTIVE',
+    },
+  });
+
+  const citizenRole = await prisma.role.upsert({
+    where: {
+      tenantId_roleCode: {
+        tenantId: citizenTenant.id,
+        roleCode: 'CITIZEN',
+      },
+    },
+    update: {},
+    create: {
+      tenantId: citizenTenant.id,
+      roleCode: 'CITIZEN',
+      name: 'Individual Data Principal',
+      isSystem: true,
+    },
+  });
+
+  const citizenUser = await prisma.user.upsert({
+    where: { email: 'rahul.sharma@citizen.in' },
+    update: {
+      passwordHash: samplePasswordHash,
+    },
+    create: {
+      id: 'user-citizen-rahul-sharma',
+      tenantId: citizenTenant.id,
+      email: 'rahul.sharma@citizen.in',
+      passwordHash: samplePasswordHash,
+      firstName: 'Rahul',
+      lastName: 'Sharma',
+      isPlatformAdmin: false,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      tenantId_userId_roleCode: {
+        tenantId: citizenTenant.id,
+        userId: citizenUser.id,
+        roleCode: citizenRole.roleCode,
+      },
+    },
+    update: {},
+    create: {
+      tenantId: citizenTenant.id,
+      userId: citizenUser.id,
+      roleCode: citizenRole.roleCode,
+    },
+  });
+
+  console.log(`✅ Sample Citizen: ${citizenUser.email} (Password: Password123!)`);
 
   // 4. Sample DPDPA Purposes
   const purpose1 = await prisma.purpose.upsert({

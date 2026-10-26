@@ -60,7 +60,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setAuthStep('Validating DPDP §6 affirmative consent...');
+    setAuthStep('Validating credentials against DPDP database...');
 
     const t1 = setTimeout(() => setAuthStep('Verifying cryptographic SHA-256 tokens...'), 350);
     const t2 = setTimeout(() => setAuthStep('Establishing zero-trust compliance session...'), 700);

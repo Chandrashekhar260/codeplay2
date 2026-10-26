@@ -146,47 +146,6 @@ export async function login(input: LoginInput, ipAddress?: string, userAgent?: s
     },
   });
 
-  // Auto-seed demo citizen if testing with standard demo credentials
-  if (!user && input.email.toLowerCase().trim() === 'rahul.sharma@example.com' && input.password === 'Password123!') {
-    const demoHashed = await hashPassword('Password123!');
-    const seeded = await prisma.$transaction(async (tx) => {
-      const tenant = await tx.tenant.create({
-        data: {
-          name: "Rahul Sharma's Personal Vault",
-          plan: 'CITIZEN',
-          status: 'ACTIVE',
-        },
-      });
-      const role = await tx.role.create({
-        data: {
-          tenantId: tenant.id,
-          roleCode: 'CITIZEN',
-          name: 'Individual Data Principal',
-          isSystem: true,
-        },
-      });
-      const newUser = await tx.user.create({
-        data: {
-          tenantId: tenant.id,
-          email: 'rahul.sharma@example.com',
-          passwordHash: demoHashed,
-          firstName: 'Rahul',
-          lastName: 'Sharma',
-          isPlatformAdmin: false,
-        },
-      });
-      await tx.userRole.create({
-        data: {
-          tenantId: tenant.id,
-          userId: newUser.id,
-          roleCode: role.roleCode,
-        },
-      });
-      return { ...newUser, tenant, userRoles: [{ tenantId: tenant.id, userId: newUser.id, roleCode: role.roleCode }] };
-    });
-    user = seeded as any;
-  }
-
   if (!user) {
     const error: any = new Error('Invalid email or password');
     error.status = 401;
@@ -209,6 +168,31 @@ export async function login(input: LoginInput, ipAddress?: string, userAgent?: s
     throw error;
   }
 
+  const isCitizen = user.tenant.plan === 'CITIZEN' || user.userRoles.some((ur) => ur.roleCode === 'CITIZEN');
+  const userType: 'MSME' | 'CITIZEN' = isCitizen ? 'CITIZEN' : 'MSME';
+  const primaryRole = user.userRoles[0]?.roleCode || (isCitizen ? 'CITIZEN' : 'ADMIN');
+
+  // Strict role separation check:
+  // MSME accounts CANNOT log into the Citizen Privacy Portal.
+  // Citizen accounts CANNOT log into the MSME Business Portal.
+  if (input.userType && input.userType !== userType) {
+    if (input.userType === 'CITIZEN' && userType === 'MSME') {
+      const error: any = new Error(
+        'Access Denied: This account is registered as an MSME Business Administrator and cannot log into the Citizen Privacy Portal. MSME accounts cannot access the user portal. Please select "MSME Company" to log in.'
+      );
+      error.status = 403;
+      error.code = 'ROLE_MISMATCH';
+      throw error;
+    } else if (input.userType === 'MSME' && userType === 'CITIZEN') {
+      const error: any = new Error(
+        'Access Denied: This account is registered as an Individual Citizen and cannot log into the MSME Business Portal. Please select "Individual User" to access the Citizen Privacy Portal.'
+      );
+      error.status = 403;
+      error.code = 'ROLE_MISMATCH';
+      throw error;
+    }
+  }
+
   // Record Audit Event
   await recordAuditEvent({
     tenantId: user.tenantId,
@@ -226,10 +210,6 @@ export async function login(input: LoginInput, ipAddress?: string, userAgent?: s
     email: user.email,
     isPlatformAdmin: user.isPlatformAdmin,
   });
-
-  const isCitizen = user.tenant.plan === 'CITIZEN' || user.userRoles.some((ur) => ur.roleCode === 'CITIZEN');
-  const userType: 'MSME' | 'CITIZEN' = isCitizen ? 'CITIZEN' : 'MSME';
-  const primaryRole = user.userRoles[0]?.roleCode || (isCitizen ? 'CITIZEN' : 'ADMIN');
 
   return {
     token,

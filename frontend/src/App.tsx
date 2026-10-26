@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ShieldAlert } from 'lucide-react';
 import { Sidebar, type NavTab } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
 import { OverviewPage } from './pages/OverviewPage';
@@ -31,15 +32,22 @@ function tabFromHash(): NavTab {
 }
 
 export function App() {
-  const [currentTab, setCurrentTab] = useState<NavTab>(tabFromHash);
+  const [currentTab, setCurrentTab] = useState<NavTab>(() => tabFromHash());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
-  const [tenantName, setTenantName] = useState<string>('Loading Workspace...');
+  const [tenantName, setTenantName] = useState<string>('Aarogya Diagnostic Center');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Toggle for Citizen / Data Principal Self-Service Portal
   const [isPortalView, setIsPortalView] = useState<boolean>(() => {
-    return window.location.hash === '#portal';
+    try {
+      const saved = localStorage.getItem('datasentinel_user');
+      const u = saved ? JSON.parse(saved) : null;
+      if (u?.userType === 'MSME') return false;
+      return window.location.hash === '#portal' || u?.userType === 'CITIZEN';
+    } catch {
+      return false;
+    }
   });
 
   // Live Backend Data States
@@ -78,6 +86,9 @@ export function App() {
   };
 
   const openPortalView = () => {
+    if (currentUser?.userType === 'MSME') {
+      return;
+    }
     setIsPortalView(true);
     window.history.pushState({ portal: true }, '', '#portal');
   };
@@ -142,7 +153,14 @@ export function App() {
   useEffect(() => {
     const handlePopState = () => {
       if (window.location.hash === '#portal') {
-        setIsPortalView(true);
+        const saved = localStorage.getItem('datasentinel_user');
+        const u = saved ? JSON.parse(saved) : null;
+        if (u?.userType === 'MSME') {
+          setIsPortalView(false);
+          window.location.hash = '#dashboard';
+        } else {
+          setIsPortalView(true);
+        }
       } else {
         setIsPortalView(false);
         setCurrentTab(tabFromHash());
@@ -164,10 +182,14 @@ export function App() {
           setCurrentUser(me.user);
           if (me.tenant?.name) setTenantName(me.tenant.name);
 
-          // Route to portal if user is an Individual Citizen
+          // Route to portal ONLY if user is an Individual Citizen
           if (me.user?.userType === 'CITIZEN' || me.user?.role === 'CITIZEN') {
             setIsPortalView(true);
           } else {
+            setIsPortalView(false);
+            if (window.location.hash === '#portal') {
+              window.location.hash = '#dashboard';
+            }
             await loadWorkspaceData();
           }
           setIsAuthChecking(false);
@@ -189,18 +211,7 @@ export function App() {
     };
   }, []);
 
-  // 1. Citizen / Data Principal Self-Service Portal
-  if (isPortalView) {
-    return (
-      <DataPrincipalPortal
-        onBackToAdmin={currentUser?.userType === 'MSME' ? closePortalView : undefined}
-        currentUser={currentUser}
-        onLogout={handleLogout}
-      />
-    );
-  }
-
-  // 2. Authentication Loading / Login State
+  // 1. Authentication Loading State
   if (isAuthChecking) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white">
@@ -212,6 +223,7 @@ export function App() {
     );
   }
 
+  // 2. Unauthenticated State -> Present LoginModal
   if (!isAuthenticated) {
     return (
       <LoginModal
@@ -222,8 +234,10 @@ export function App() {
 
           if (data.user?.userType === 'CITIZEN' || data.user?.role === 'CITIZEN') {
             setIsPortalView(true);
+            window.location.hash = '#portal';
           } else {
             setIsPortalView(false);
+            window.location.hash = '#dashboard';
             loadWorkspaceData();
           }
         }}
@@ -231,16 +245,65 @@ export function App() {
     );
   }
 
-  // 3. Authenticated Enterprise Dashboard
+  const isCitizen = currentUser?.userType === 'CITIZEN' || currentUser?.role === 'CITIZEN';
+  const isMsme = currentUser?.userType === 'MSME';
+
+  // 3. Citizen / Data Principal Self-Service Portal (Citizen accounts only)
+  if (isCitizen) {
+    return (
+      <DataPrincipalPortal
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // 4. MSME Guard: If logged in as MSME and attempting to access Citizen Portal
+  if (isMsme && (isPortalView || window.location.hash === '#portal')) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-900 text-white p-6">
+        <div className="max-w-md w-full bg-slate-800 border border-amber-500/30 rounded-2xl p-6 text-center shadow-2xl">
+          <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-white mb-2">Access Restricted</h2>
+          <p className="text-sm text-slate-300 mb-6 leading-relaxed">
+            You are logged in with an MSME Business Administrator account (
+            <span className="font-mono text-amber-300">{currentUser?.email}</span>).
+            Under DPDP Act 2023, the Citizen Privacy Portal is exclusively reserved for individual citizens.
+            MSME company accounts cannot access the citizen portal.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => {
+                setIsPortalView(false);
+                window.location.hash = '#dashboard';
+              }}
+              className="btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              Return to MSME Workspace
+            </button>
+            <button
+              onClick={handleLogout}
+              className="btn-secondary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer text-slate-300"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. Authenticated Enterprise Dashboard (For MSME Administrators)
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-900 text-slate-900 font-sans">
-      {/* Persistent Enterprise Navy Sidebar */}
+      {/* Persistent Enterprise Navy Sidebar - no portal launch for MSME session */}
       <Sidebar
         currentTab={currentTab}
         onTabChange={navigateToTab}
         tenantName={tenantName}
         pendingDsrCount={pendingDsrCount}
-        onLaunchPortal={openPortalView}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
@@ -260,54 +323,53 @@ export function App() {
         <div className="flex-1 m-3 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <main className="flex-1 overflow-y-auto bg-slate-50/40 p-6 sm:p-8">
             {currentTab === 'dashboard' && (
-            <OverviewPage
-              onNavigate={navigateToTab}
-              stats={{
-                sourcesCount: sources.length,
-                findingsCount: realFindingsCount,
-                assetsCount: assets.length,
-                consentsCount: realConsentsCount,
-                flagsCount: realFlagsCount,
-              }}
-            />
-          )}
+              <OverviewPage
+                onNavigate={navigateToTab}
+                stats={{
+                  sourcesCount: sources.length,
+                  findingsCount: realFindingsCount,
+                  assetsCount: assets.length,
+                  consentsCount: realConsentsCount,
+                  flagsCount: realFlagsCount,
+                }}
+              />
+            )}
 
-          {currentTab === 'discovery' && (
-            <DiscoveryPage
-              sources={sources}
-              onFileUploaded={loadWorkspaceData}
-            />
-          )}
+            {currentTab === 'discovery' && (
+              <DiscoveryPage
+                sources={sources}
+                onFileUploaded={loadWorkspaceData}
+              />
+            )}
 
-          {currentTab === 'ropa' && (
-            <RopaPage
-              activities={activities}
-              onActivityCreated={loadWorkspaceData}
-            />
-          )}
+            {currentTab === 'ropa' && (
+              <RopaPage
+                activities={activities}
+                onActivityCreated={loadWorkspaceData}
+              />
+            )}
 
-          {currentTab === 'governance' && (
-            <GovernancePage assets={assets} />
-          )}
+            {currentTab === 'governance' && (
+              <GovernancePage assets={assets} />
+            )}
 
-          {currentTab === 'consent' && (
-            <ConsentPage
-              purposes={purposes}
-              onConsentRecorded={loadWorkspaceData}
-            />
-          )}
+            {currentTab === 'consent' && (
+              <ConsentPage
+                purposes={purposes}
+                onConsentRecorded={loadWorkspaceData}
+              />
+            )}
 
-          {currentTab === 'dsr' && (
-            <DsrAdminPage
-              requests={dsrRequests}
-              onDsrResolved={loadWorkspaceData}
-              onLaunchPortal={openPortalView}
-            />
-          )}
+            {currentTab === 'dsr' && (
+              <DsrAdminPage
+                requests={dsrRequests}
+                onDsrResolved={loadWorkspaceData}
+              />
+            )}
 
-          {currentTab === 'cookies' && <CookieGovernancePage />}
+            {currentTab === 'cookies' && <CookieGovernancePage />}
 
-          {currentTab === 'audit' && <AuditPage />}
+            {currentTab === 'audit' && <AuditPage />}
           </main>
         </div>
       </div>
