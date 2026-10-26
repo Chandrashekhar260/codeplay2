@@ -104,7 +104,14 @@ export async function runScan(sourceId: string, tenantId: string, userId?: strin
     path.resolve(process.cwd(), 'backend/dist/python/scanner.py'),
   ];
   const scriptPath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
-  const pythonExecutable = process.platform === 'win32' ? 'python' : 'python3';
+  const isWin = process.platform === 'win32';
+  const venvCandidates = [
+    path.resolve(process.cwd(), '.venv', isWin ? 'Scripts/python.exe' : 'bin/python'),
+    path.resolve(process.cwd(), 'backend/.venv', isWin ? 'Scripts/python.exe' : 'bin/python'),
+    path.resolve(__dirname, '../../../../.venv', isWin ? 'Scripts/python.exe' : 'bin/python'),
+  ];
+  const venvPython = venvCandidates.find((p) => fs.existsSync(p));
+  const pythonExecutable = process.env.PYTHON_PATH || venvPython || (isWin ? 'python' : 'python3');
 
   return new Promise((resolve, reject) => {
     const py = spawn(pythonExecutable, [scriptPath, filePath]);

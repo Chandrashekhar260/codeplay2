@@ -1,18 +1,20 @@
 """
 PrivacyLedger - Local PII & Indian Identifier Scanner
 Strictly offline execution using regex heuristics and Verhoeff checksum.
-Outputs clean JSON to stdout matching Photo 2 database schema.
+Outputs clean JSON to stdout matching database schema.
+Zero external dependencies - uses Python stdlib only (csv, zipfile).
+openpyxl used for XLSX only if available.
 """
 
 import sys
 import os
 import json
 import re
+import csv
 from typing import List, Dict, Any
 
 # ==============================================================================
 # Verhoeff Algorithm for 12-Digit Indian Aadhaar Validation
-# Eliminates false positives by validating the check digit.
 # ==============================================================================
 VERHOEFF_D = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -43,7 +45,6 @@ def validate_verhoeff_aadhaar(number_str: str) -> bool:
     clean = re.sub(r'[\s\-]', '', str(number_str))
     if not re.match(r'^[2-9]\d{11}$', clean):
         return False
-    
     c = 0
     reversed_digits = [int(x) for x in reversed(clean)]
     for i, digit in enumerate(reversed_digits):
@@ -85,7 +86,6 @@ HEADER_HINTS = {
     'city': ('LOCATION', 'LOW'),
     'pincode': ('POSTAL_CODE', 'LOW'),
     'pin': ('POSTAL_CODE', 'LOW'),
-    # Section 9 Children's Data Protection Hints
     'child': ('CHILDREN_DATA', 'CRITICAL'),
     'minor': ('CHILDREN_DATA', 'CRITICAL'),
     'student': ('CHILDREN_DATA', 'CRITICAL'),
@@ -99,12 +99,10 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
     """Analyzes a list of values in a column to determine PII category and sensitivity level."""
     header_lower = str(series_name).lower().strip()
 
-    # 1. Header hints
     for hint, (category, sensitivity) in HEADER_HINTS.items():
         if hint in header_lower:
             return {'piiCategories': category, 'sensitivityLevel': sensitivity}
 
-    # Check child / minor keywords in header
     for kw in CHILD_KEYWORDS:
         if kw in header_lower:
             if 'pediatric' in header_lower or 'health' in header_lower:
@@ -113,12 +111,10 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
                 return {'piiCategories': 'PARENT_GUARDIAN_CONTACT', 'sensitivityLevel': 'HIGH'}
             return {'piiCategories': 'CHILDREN_DATA', 'sensitivityLevel': 'CRITICAL'}
 
-    # Check health keywords in header
     for kw in HEALTH_KEYWORDS:
         if kw in header_lower:
             return {'piiCategories': 'HEALTH_DATA', 'sensitivityLevel': 'CRITICAL'}
 
-    # 2. Inspect sample values
     phone_matches = 0
     pan_matches = 0
     aadhaar_matches = 0
@@ -126,7 +122,7 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
     health_matches = 0
     non_empty = 0
 
-    for val in values[:200]:  # Sample up to 200 rows for high throughput
+    for val in values[:200]:
         if val is None or val == '':
             continue
         s_val = str(val).strip()
@@ -141,7 +137,6 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
         elif validate_verhoeff_aadhaar(s_val):
             aadhaar_matches += 1
 
-        # Check medical/health terms in cell
         val_lower = s_val.lower()
         if any(kw in val_lower for kw in HEALTH_KEYWORDS):
             health_matches += 1
@@ -151,7 +146,7 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
 
     threshold = max(1, int(non_empty * 0.15))
 
-    if aadhaar_matches >= 1:  # Even 1 valid Verhoeff Aadhaar is critical
+    if aadhaar_matches >= 1:
         return {'piiCategories': 'AADHAAR', 'sensitivityLevel': 'CRITICAL'}
     if health_matches >= threshold:
         return {'piiCategories': 'HEALTH_DATA', 'sensitivityLevel': 'CRITICAL'}
@@ -165,8 +160,51 @@ def analyze_series(series_name: str, values: List[Any]) -> Dict[str, str]:
     return {}
 
 
+def read_csv_columns(file_path: str) -> Dict[str, List[Any]]:
+    """Read a CSV using only stdlib csv module — zero external dependencies."""
+    columns: Dict[str, List[Any]] = {}
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader):
+            if i >= 5000:
+                break
+            for col, val in row.items():
+                if col not in columns:
+                    columns[col] = []
+                columns[col].append(val if val is not None else '')
+    return columns
+
+
+def read_xlsx_columns(file_path: str) -> Dict[str, Dict[str, List[Any]]]:
+    """Read XLSX using openpyxl if available, otherwise return empty."""
+    sheets: Dict[str, Dict[str, List[Any]]] = {}
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            cols: Dict[str, List[Any]] = {}
+            headers: List[str] = []
+            for i, row in enumerate(ws.iter_rows(values_only=True)):
+                if i == 0:
+                    headers = [str(c) if c is not None else f'col_{j}' for j, c in enumerate(row)]
+                    for h in headers:
+                        cols[h] = []
+                else:
+                    if i > 5000:
+                        break
+                    for j, val in enumerate(row):
+                        if j < len(headers):
+                            cols[headers[j]].append(val if val is not None else '')
+            sheets[sheet_name] = cols
+        wb.close()
+    except ImportError:
+        pass
+    return sheets
+
+
 def scan_file(file_path: str) -> Dict[str, Any]:
-    """Scans CSV or XLSX file and extracts findings and flags."""
+    """Scans CSV or XLSX file and extracts PII findings and remediation flags."""
     if not os.path.exists(file_path):
         return {'success': False, 'error': f'File not found: {file_path}'}
 
@@ -175,14 +213,11 @@ def scan_file(file_path: str) -> Dict[str, Any]:
     flags = []
 
     try:
-        import pandas as pd
-
         if ext == '.csv':
-            # Read CSV
-            df = pd.read_csv(file_path, low_memory=False, nrows=5000)
             sheet_name = os.path.basename(file_path)
-            for col in df.columns:
-                res = analyze_series(col, df[col].dropna().tolist())
+            columns = read_csv_columns(file_path)
+            for col, values in columns.items():
+                res = analyze_series(col, values)
                 if res:
                     findings.append({
                         'objectName': sheet_name,
@@ -192,20 +227,19 @@ def scan_file(file_path: str) -> Dict[str, Any]:
                     })
 
         elif ext in ('.xlsx', '.xls'):
-            excel_file = pd.ExcelFile(file_path)
-            for sheet in excel_file.sheet_names:
-                df = pd.read_excel(excel_file, sheet_name=sheet, nrows=5000)
-                for col in df.columns:
-                    res = analyze_series(col, df[col].dropna().tolist())
+            sheets = read_xlsx_columns(file_path)
+            for sheet_name, columns in sheets.items():
+                for col, values in columns.items():
+                    res = analyze_series(col, values)
                     if res:
                         findings.append({
-                            'objectName': str(sheet),
+                            'objectName': str(sheet_name),
                             'fieldName': str(col),
                             'piiCategories': res['piiCategories'],
                             'sensitivityLevel': res['sensitivityLevel']
                         })
+
         else:
-            # Fallback for plain text or unknown
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = [line.strip() for line in f.readlines()[:1000]]
             sheet_name = os.path.basename(file_path)
@@ -218,36 +252,18 @@ def scan_file(file_path: str) -> Dict[str, Any]:
                     'sensitivityLevel': res['sensitivityLevel']
                 })
 
-        # Generate Remediation Flags matching Photo 2 schema:
-        # remediation_flags (flag_id, source_id, flag_type, severity, status)
         has_child_data = any(f.get('piiCategories') in ('CHILDREN_DATA', 'CHILD_HEALTH_DATA') for f in findings)
         has_critical = any(f['sensitivityLevel'] == 'CRITICAL' for f in findings)
         has_high = any(f['sensitivityLevel'] == 'HIGH' for f in findings)
 
         if has_child_data:
-            flags.append({
-                'flagType': 'SECTION_9_CHILD_DATA_SAFEGUARD',
-                'severity': 'CRITICAL',
-                'status': 'OPEN'
-            })
+            flags.append({'flagType': 'SECTION_9_CHILD_DATA_SAFEGUARD', 'severity': 'CRITICAL', 'status': 'OPEN'})
         if has_critical:
-            flags.append({
-                'flagType': 'UNENCRYPTED_CRITICAL_PII',
-                'severity': 'CRITICAL',
-                'status': 'OPEN'
-            })
+            flags.append({'flagType': 'UNENCRYPTED_CRITICAL_PII', 'severity': 'CRITICAL', 'status': 'OPEN'})
         if has_high:
-            flags.append({
-                'flagType': 'UNPROTECTED_CONTACT_IDENTIFIER',
-                'severity': 'HIGH',
-                'status': 'OPEN'
-            })
+            flags.append({'flagType': 'UNPROTECTED_CONTACT_IDENTIFIER', 'severity': 'HIGH', 'status': 'OPEN'})
         if len(findings) > 0 and not has_critical and not has_high and not has_child_data:
-            flags.append({
-                'flagType': 'GENERAL_PII_PRESENT',
-                'severity': 'MEDIUM',
-                'status': 'OPEN'
-            })
+            flags.append({'flagType': 'GENERAL_PII_PRESENT', 'severity': 'MEDIUM', 'status': 'OPEN'})
 
         return {
             'success': True,
