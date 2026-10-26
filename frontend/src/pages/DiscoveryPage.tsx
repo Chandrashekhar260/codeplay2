@@ -86,9 +86,9 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
             <UploadCloud className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Upload MSME Spreadsheet or Patient Ledger</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Upload MSME Spreadsheet, PDF, or Ledger</h3>
             <p className="text-xs text-slate-500 mt-1">
-              Supports <span className="font-mono font-medium">.xlsx</span>, <span className="font-mono font-medium">.xls</span>, and <span className="font-mono font-medium">.csv</span> files.
+              Supports <span className="font-mono font-medium">.xlsx</span>, <span className="font-mono font-medium">.xls</span>, <span className="font-mono font-medium">.csv</span>, and <span className="font-mono font-medium">.pdf</span> documents.
               Automatically runs the Python Verhoeff Aadhaar checksum and PAN regex scanner.
             </p>
           </div>
@@ -96,7 +96,7 @@ export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ sources, onFileUpl
           <label className="inline-block">
             <input
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.xlsx,.xls,.pdf,.txt"
               onChange={handleFileUpload}
               disabled={isUploading}
               className="hidden"

@@ -11,6 +11,7 @@ import os
 import json
 import re
 import csv
+import zlib
 from typing import List, Dict, Any
 
 # ==============================================================================
@@ -203,8 +204,39 @@ def read_xlsx_columns(file_path: str) -> Dict[str, Dict[str, List[Any]]]:
     return sheets
 
 
+def extract_pdf_tokens(file_path: str) -> List[str]:
+    """Extract text tokens and strings from PDF using built-in zlib and stream parsing."""
+    tokens: List[str] = []
+    try:
+        with open(file_path, 'rb') as f:
+            data = f.read()
+
+        # 1. Search for FlateDecode / uncompressed streams
+        stream_matches = re.findall(rb'stream[\r\n]+(.*?)[\r\n]+endstream', data, re.DOTALL)
+        for raw in stream_matches:
+            stream_data = raw
+            try:
+                stream_data = zlib.decompress(raw)
+            except Exception:
+                pass
+
+            # Extract parenthesized text strings: (Hello World)
+            for m in re.finditer(rb'\((.*?)\)', stream_data):
+                chunk = m.group(1).decode('utf-8', errors='ignore').strip()
+                if chunk and len(chunk) > 1:
+                    tokens.append(chunk)
+
+        # 2. Also search overall file contents for strings & identifiers
+        raw_text = data.decode('utf-8', errors='ignore')
+        for word in re.findall(r'[A-Za-z0-9_\-\.\+@]{3,}', raw_text):
+            tokens.append(word)
+    except Exception:
+        pass
+    return tokens
+
+
 def scan_file(file_path: str) -> Dict[str, Any]:
-    """Scans CSV or XLSX file and extracts PII findings and remediation flags."""
+    """Scans CSV, XLSX, or PDF file and extracts PII findings and remediation flags."""
     if not os.path.exists(file_path):
         return {'success': False, 'error': f'File not found: {file_path}'}
 
@@ -238,6 +270,33 @@ def scan_file(file_path: str) -> Dict[str, Any]:
                             'piiCategories': res['piiCategories'],
                             'sensitivityLevel': res['sensitivityLevel']
                         })
+
+        elif ext == '.pdf':
+            sheet_name = os.path.basename(file_path)
+            tokens = extract_pdf_tokens(file_path)
+            aadhaars = [t for t in tokens if validate_verhoeff_aadhaar(t)]
+            pans = [t for t in tokens if RE_PAN.match(t)]
+            phones = [t for t in tokens if RE_PHONE.match(t)]
+            emails = [t for t in tokens if RE_EMAIL.match(t)]
+            health = [t for t in tokens if any(kw in t.lower() for kw in HEALTH_KEYWORDS)]
+            children = [t for t in tokens if any(kw in t.lower() for kw in CHILD_KEYWORDS)]
+
+            if aadhaars:
+                findings.append({'objectName': sheet_name, 'fieldName': 'Aadhaar Numbers', 'piiCategories': 'AADHAAR', 'sensitivityLevel': 'CRITICAL'})
+            if pans:
+                findings.append({'objectName': sheet_name, 'fieldName': 'PAN Card Numbers', 'piiCategories': 'FINANCIAL_IDENTIFIER', 'sensitivityLevel': 'HIGH'})
+            if phones:
+                findings.append({'objectName': sheet_name, 'fieldName': 'Mobile Numbers', 'piiCategories': 'PHONE', 'sensitivityLevel': 'HIGH'})
+            if emails:
+                findings.append({'objectName': sheet_name, 'fieldName': 'Email Addresses', 'piiCategories': 'EMAIL', 'sensitivityLevel': 'HIGH'})
+            if health:
+                findings.append({'objectName': sheet_name, 'fieldName': 'Health / Clinical Data', 'piiCategories': 'HEALTH_DATA', 'sensitivityLevel': 'CRITICAL'})
+            if children:
+                findings.append({'objectName': sheet_name, 'fieldName': 'Child / Minor Identifiers', 'piiCategories': 'CHILDREN_DATA', 'sensitivityLevel': 'CRITICAL'})
+
+            if not findings and tokens:
+                # General content detected
+                findings.append({'objectName': sheet_name, 'fieldName': 'Document Content', 'piiCategories': 'GENERAL_IDENTIFIER', 'sensitivityLevel': 'MEDIUM'})
 
         else:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:

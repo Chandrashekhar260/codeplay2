@@ -35,13 +35,13 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedExtensions = ['.csv', '.xlsx', '.xls', '.txt'];
+  const allowedExtensions = ['.csv', '.xlsx', '.xls', '.txt', '.pdf'];
   const ext = path.extname(file.originalname).toLowerCase();
 
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file format. Only .csv, .xlsx, .xls, and .txt files are supported.'));
+    cb(new Error('Invalid file format. Only .csv, .xlsx, .xls, .txt, and .pdf files are supported.'));
   }
 };
 
