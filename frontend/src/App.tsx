@@ -85,20 +85,6 @@ export function App() {
     setCurrentTab(tab);
   };
 
-  const openPortalView = () => {
-    if (currentUser?.userType === 'MSME') {
-      return;
-    }
-    setIsPortalView(true);
-    window.history.pushState({ portal: true }, '', '#portal');
-  };
-
-  const closePortalView = () => {
-    setIsPortalView(false);
-    window.history.pushState({ tab: currentTab }, '', `#${currentTab}`);
-    loadWorkspaceData();
-  };
-
   // Live Data Loader — Direct from PostgreSQL Backend
   const loadWorkspaceData = async () => {
     setIsRefreshing(true);
