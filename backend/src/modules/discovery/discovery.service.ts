@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 import { prisma } from '../../lib/prisma';
 import { recordAuditEvent } from '../audit/audit.service';
 
@@ -94,7 +95,15 @@ export async function runScan(sourceId: string, tenantId: string, userId?: strin
   });
 
   // 3. Execute Python PII Scanner via Child Process
-  const scriptPath = path.resolve(__dirname, '../../python/scanner.py');
+  const candidatePaths = [
+    path.resolve(__dirname, '../../python/scanner.py'),
+    path.resolve(__dirname, '../../../src/python/scanner.py'),
+    path.resolve(process.cwd(), 'src/python/scanner.py'),
+    path.resolve(process.cwd(), 'dist/python/scanner.py'),
+    path.resolve(process.cwd(), 'backend/src/python/scanner.py'),
+    path.resolve(process.cwd(), 'backend/dist/python/scanner.py'),
+  ];
+  const scriptPath = candidatePaths.find((p) => fs.existsSync(p)) || candidatePaths[0];
   const pythonExecutable = process.platform === 'win32' ? 'python' : 'python3';
 
   return new Promise((resolve, reject) => {
