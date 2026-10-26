@@ -12,11 +12,16 @@ import cookieRoutes from './modules/cookies/cookie.routes';
 
 const app = express();
 
-// Security and utility middleware
-app.use(cors({
+const corsOptions: cors.CorsOptions = {
   origin: true,
   credentials: true,
-}));
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

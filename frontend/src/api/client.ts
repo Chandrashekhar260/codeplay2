@@ -92,7 +92,7 @@ export const api = {
       const formData = new FormData();
       formData.append('file', file);
       const res = await apiClient.post('/discovery/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': undefined },
       });
       return res.data.data;
     },
